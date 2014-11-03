@@ -1,13 +1,4 @@
-/**
- * Module Dependencies
- */
-// ...
-// e.g.
-// var _ = require('lodash');
-// var mysql = require('node-mysql');
-// ...
-
-
+var _ = require('lodash');
 
 /**
  * Sails Boilerplate Adapter
@@ -25,12 +16,8 @@
  */
 module.exports = (function () {
 
-
-  // You'll want to maintain a reference to each collection
-  // (aka model) that gets registered with this adapter.
-  var _modelReferences = {};
-
-
+  // Maintain a reference to each registered connection.
+  var _connections = {};
   
   // You may also want to store additional, private data
   // per-collection (esp. if your data store uses persistent
@@ -105,11 +92,19 @@ module.exports = (function () {
      * @param  {Function} cb         [description]
      * @return {[type]}              [description]
      */
-    registerCollection: function(collection, cb) {
+    registerConnection: function(connection, collections, cb) {
+
+      _.each(collections, function(collection) {
+        if (!collection.meta.mock)
+          collection.meta.mock = {}
+      });
 
       // Keep a reference to this collection
-      _modelReferences[collection.identity] = collection;
-      
+      _connections[connection.identity] = {
+        connection: connection,
+        collections: collections
+      };
+
       cb();
     },
 
@@ -214,10 +209,7 @@ module.exports = (function () {
      * @param  {Function} cb             [description]
      * @return {[type]}                  [description]
      */
-    find: function(collectionName, options, cb) {
-
-      // If you need to access your private data for this collection:
-      var collection = _modelReferences[collectionName];
+    find: function(connection, collectionName, options, cb) {
 
       // Options object is normalized for you:
       // 
@@ -231,7 +223,13 @@ module.exports = (function () {
       // If no matches were found, this will be an empty array.
 
       // Respond with an error, or the results.
-      cb(null, []);
+
+      var collection = _connections[connection].collections[collectionName];
+
+      if (collection.meta.mock.find)
+        return collection.meta.mock.find.call(collection, collectionName, options, cb);
+
+      cb("Mock find not implemented", []);
     },
 
     /**
