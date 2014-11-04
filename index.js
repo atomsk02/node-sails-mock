@@ -1,5 +1,3 @@
-var _ = require('lodash');
-
 /**
  * Sails Boilerplate Adapter
  *
@@ -45,6 +43,9 @@ module.exports = (function () {
   // host OR database OR user OR password = separate pool.
   var _dbPools = {};
 
+  function getCollection(connectionName, collectionName) {
+      return _connections[connectionName].collections[collectionName];
+  }
 
 
   var adapter = {
@@ -94,7 +95,8 @@ module.exports = (function () {
      */
     registerConnection: function(connection, collections, cb) {
 
-      _.each(collections, function(collection) {
+      Object.keys(collections).forEach(function(collectionName) {
+        var collection = collections[collectionName];
         if (!collection.meta.mock)
           collection.meta.mock = {}
       });
@@ -224,7 +226,7 @@ module.exports = (function () {
 
       // Respond with an error, or the results.
 
-      var collection = _connections[connection].collections[collectionName];
+      var collection = getCollection(connection, collectionName);
 
       if (collection.meta.mock.find)
         return collection.meta.mock.find.call(collection, collectionName, options, cb);
@@ -241,14 +243,18 @@ module.exports = (function () {
      * @param  {Function} cb             [description]
      * @return {[type]}                  [description]
      */
-    create: function(collectionName, values, cb) {
-      // If you need to access your private data for this collection:
-      var collection = _modelReferences[collectionName];
+    create: function(connection, collectionName, values, cb) {
 
       // Create a single new model (specified by `values`)
 
       // Respond with error or the newly-created record.
-      cb(null, values);
+
+      var collection = getCollection(connection, collectionName);
+
+      if (collection.meta.mock.create)
+        return collection.meta.mock.create.call(collection, collectionName, values, cb);
+
+      cb("Mock create not implemented", null);
     },
 
 
